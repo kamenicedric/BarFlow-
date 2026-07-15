@@ -11,18 +11,24 @@ class DashboardController extends Controller
 {
     public function index(): void
     {
-        $this->view('dashboard/index');
+        $venteModel = new Vente();
+        $this->view('dashboard/index', [
+            'topProduits' => $venteModel->topProduits(),
+            'topVendeuses' => $venteModel->topVendeuses(),
+            'devise' => setting('devise', 'FCFA'),
+        ]);
     }
 
     public function stats(): void
     {
         $venteModel = new Vente();
-        $stats = $venteModel->dashboardStats();
-        $monthly = $venteModel->monthlySales();
 
         $this->json([
-            'stats' => $stats,
-            'monthly' => $monthly,
+            'stats' => $venteModel->dashboardStats(),
+            'monthly' => $venteModel->monthlySales(),
+            'monthly_expenses' => $venteModel->monthlyExpenses(),
+            'top_produits' => $venteModel->topProduits(),
+            'top_vendeuses' => $venteModel->topVendeuses(),
         ]);
     }
 }

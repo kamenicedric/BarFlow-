@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Controllers\ApprovisionnementsController;
+use App\Controllers\AuditController;
 use App\Controllers\AuthController;
 use App\Controllers\CaisseController;
 use App\Controllers\DashboardController;
@@ -11,17 +12,19 @@ use App\Controllers\DonsController;
 use App\Controllers\PertesController;
 use App\Controllers\ProduitsController;
 use App\Controllers\RapportsController;
+use App\Controllers\SettingsController;
 use App\Controllers\StockController;
+use App\Controllers\UsersController;
 use App\Controllers\VentesController;
 
 /** @var App\Core\App $app */
 
 $app->router->get('/login', [AuthController::class, 'showLogin'], ['guest']);
 $app->router->post('/login', [AuthController::class, 'login'], ['guest']);
-$app->router->get('/register', [AuthController::class, 'showRegister'], ['guest']);
-$app->router->post('/register', [AuthController::class, 'register'], ['guest']);
 $app->router->get('/forgot-password', [AuthController::class, 'showForgotPassword'], ['guest']);
-$app->router->post('/forgot-password', [AuthController::class, 'resetPassword'], ['guest']);
+$app->router->post('/forgot-password', [AuthController::class, 'requestReset'], ['guest']);
+$app->router->get('/reset-password', [AuthController::class, 'showResetPassword'], ['guest']);
+$app->router->post('/reset-password', [AuthController::class, 'resetPassword'], ['guest']);
 $app->router->post('/logout', [AuthController::class, 'logout'], ['auth']);
 
 $app->router->get('/', [DashboardController::class, 'index'], ['auth']);
@@ -63,3 +66,14 @@ $app->router->post('/approvisionnements/delete', [ApprovisionnementsController::
 $app->router->get('/rapports', [RapportsController::class, 'index'], ['auth']);
 $app->router->get('/rapports/export/excel', [RapportsController::class, 'exportExcel'], ['auth']);
 $app->router->get('/rapports/export/pdf', [RapportsController::class, 'exportPdf'], ['auth']);
+
+$app->router->get('/users', [UsersController::class, 'index'], ['auth', 'role:administrateur']);
+$app->router->post('/users', [UsersController::class, 'store'], ['auth', 'role:administrateur']);
+$app->router->post('/users/update', [UsersController::class, 'update'], ['auth', 'role:administrateur']);
+$app->router->post('/users/reset-password', [UsersController::class, 'resetPassword'], ['auth', 'role:administrateur']);
+$app->router->post('/users/delete', [UsersController::class, 'delete'], ['auth', 'role:administrateur']);
+
+$app->router->get('/settings', [SettingsController::class, 'index'], ['auth', 'role:administrateur,gerant']);
+$app->router->post('/settings', [SettingsController::class, 'update'], ['auth', 'role:administrateur,gerant']);
+
+$app->router->get('/audit', [AuditController::class, 'index'], ['auth', 'role:administrateur,gerant']);

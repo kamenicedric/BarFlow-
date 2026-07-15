@@ -50,4 +50,59 @@ document.addEventListener('DOMContentLoaded', () => {
             updateToggleLabel();
         });
     }
+
+    initPasswordToggles();
+    initStockAlerts();
 });
+
+// Gestion centralisee de la visibilite des mots de passe.
+// Tout bouton portant la classe .js-toggle-password avec data-target="idInput".
+function initPasswordToggles() {
+    document.querySelectorAll('.js-toggle-password').forEach((button) => {
+        button.addEventListener('click', () => {
+            const input = document.getElementById(button.dataset.target);
+            if (!input) return;
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            button.innerHTML = isHidden
+                ? '<i class="bi bi-eye-slash"></i>'
+                : '<i class="bi bi-eye"></i>';
+        });
+    });
+}
+
+// Alertes stock temps reel affichees dans la barre du haut.
+function initStockAlerts() {
+    const badge = document.getElementById('stockAlertBadge');
+    const menu = document.getElementById('stockAlertMenu');
+    if (!badge || !menu) return;
+
+    const refresh = async () => {
+        try {
+            const response = await fetch(BarFlow.url('/api/stock/alerts'));
+            if (!response.ok) return;
+            const payload = await response.json();
+            const items = payload.data || payload.alerts || [];
+
+            if (!items.length) {
+                badge.classList.add('d-none');
+                menu.innerHTML = '<li><span class="dropdown-item-text text-muted">Aucune alerte stock</span></li>';
+                return;
+            }
+
+            badge.textContent = items.length;
+            badge.classList.remove('d-none');
+            menu.innerHTML = items.map((item) => {
+                const nom = item.nom || 'Produit';
+                const stock = item.stock ?? '?';
+                const seuil = item.stock_critique ?? '?';
+                return `<li><span class="dropdown-item-text"><i class="bi bi-exclamation-triangle text-warning"></i> <strong>${nom}</strong> — stock ${stock} / seuil ${seuil}</span></li>`;
+            }).join('');
+        } catch (error) {
+            // Silencieux : l'utilisateur peut ne pas etre sur une page protegee.
+        }
+    };
+
+    refresh();
+    setInterval(refresh, 60000);
+}

@@ -11,6 +11,7 @@ use App\Core\Validator;
 use App\Models\Approvisionnement;
 use App\Models\Fournisseur;
 use App\Models\Produit;
+use App\Services\StockService;
 
 class ApprovisionnementsController extends Controller
 {
@@ -61,8 +62,10 @@ class ApprovisionnementsController extends Controller
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $ancienStock = (float) $produit['stock'];
-        $nouveauStock = $ancienStock + $quantite;
+        $stockService = new StockService($db);
+        // Conversion unite d'achat -> unite de stock (ex: 1 casier = 12 bouteilles)
+        $quantiteStock = $stockService->convertPurchaseToStock($produit, $quantite);
+        $facturePath = handle_upload('facture');
 
         try {
             $db->beginTransaction();
@@ -72,29 +75,14 @@ class ApprovisionnementsController extends Controller
                 'fournisseur_id' => (int) $fournisseurId,
                 'quantite' => $quantite,
                 'prix_total' => (float) $_POST['prix_total'],
-                'facture_path' => null,
+                'facture_path' => $facturePath,
                 'date_approvisionnement' => date('Y-m-d H:i:s'),
                 'utilisateur_id' => (int) Auth::user()['id'],
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
 
-            $produitModel->updateById((int) $produit['id'], [
-                'stock' => $nouveauStock,
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
-
-            $db->prepare('INSERT INTO mouvements_stock (produit_id, type_mouvement, quantite, ancien_stock, nouveau_stock, utilisateur_id, justification, date_mouvement, created_at, updated_at)
-                          VALUES (:produit_id, :type_mouvement, :quantite, :ancien_stock, :nouveau_stock, :utilisateur_id, :justification, NOW(), NOW(), NOW())')
-                ->execute([
-                    'produit_id' => $produit['id'],
-                    'type_mouvement' => 'approvisionnement',
-                    'quantite' => $quantite,
-                    'ancien_stock' => $ancienStock,
-                    'nouveau_stock' => $nouveauStock,
-                    'utilisateur_id' => Auth::user()['id'],
-                    'justification' => 'Appro #' . $id,
-                ]);
+            $stockService->applyMovement($produit, 'approvisionnement', $quantiteStock, (int) Auth::user()['id'], 'Appro #' . $id);
 
             $db->commit();
             audit_log('create', 'approvisionnements', $id, null, ['quantite' => $quantite, 'prix_total' => (float) $_POST['prix_total']]);

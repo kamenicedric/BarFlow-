@@ -17,8 +17,9 @@ class Produit extends Model
         $params = [];
 
         if ($search !== null && $search !== '') {
-            $sql .= ' AND (p.nom LIKE :search OR p.code_barre LIKE :search)';
-            $params['search'] = '%' . $search . '%';
+            $sql .= ' AND (p.nom LIKE :search_nom OR p.code_barre LIKE :search_code)';
+            $params['search_nom'] = '%' . $search . '%';
+            $params['search_code'] = '%' . $search . '%';
         }
 
         $sql .= ' ORDER BY p.nom ASC';
@@ -31,9 +32,10 @@ class Produit extends Model
 
     public function decrementStock(int $id, float $quantity): bool
     {
-        $sql = 'UPDATE produits SET stock = stock - :quantity WHERE id = :id AND stock >= :quantity';
+        $sql = 'UPDATE produits SET stock = stock - :quantity WHERE id = :id AND stock >= :quantity_check';
         return $this->db->prepare($sql)->execute([
             'quantity' => $quantity,
+            'quantity_check' => $quantity,
             'id' => $id,
         ]);
     }

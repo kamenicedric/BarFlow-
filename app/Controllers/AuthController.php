@@ -16,14 +16,9 @@ class AuthController extends Controller
         $this->view('auth/login', [], 'auth');
     }
 
-    public function showRegister(): void
-    {
-        $this->view('auth/register', [], 'auth');
-    }
-
     public function showForgotPassword(): void
     {
-        $this->view('auth/forgot-password', [], 'auth');
+        $this->view('auth/forgot-password', ['resetLink' => null], 'auth');
     }
 
     public function login(): void
@@ -51,7 +46,7 @@ class AuthController extends Controller
 
         if (!Auth::attempt($username, $password)) {
             $userModel->addAttempt($username);
-            flash('error', 'Nom utilisateur ou mot de passe incorrect');
+            flash('error', 'Nom utilisateur ou mot de passe incorrect (ou compte desactive)');
             $this->redirect('/login');
         }
 
@@ -59,107 +54,95 @@ class AuthController extends Controller
         audit_log('login', 'users', (int) Auth::user()['id'], null, ['status' => 'success']);
 
         if (!empty($_POST['remember'])) {
-            setcookie('barflow_remember', (string) Auth::user()['id'], time() + (86400 * 15), '/', '', false, true);
+            Auth::rememberUser((int) Auth::user()['id']);
         }
 
         clear_old();
         $this->redirect('/dashboard');
     }
 
-    public function register(): void
+    /**
+     * Etape 1 : l'utilisateur demande une reinitialisation.
+     * Sans service mail (reseau local), le lien securise est affiche a l'ecran.
+     */
+    public function requestReset(): void
     {
         if (!verify_csrf()) {
             flash('error', 'Token CSRF invalide');
-            $this->redirect('/register');
+            $this->redirect('/forgot-password');
         }
 
-        $validator = (new Validator())
-            ->required($_POST, ['nom', 'username', 'password', 'password_confirmation'])
-            ->min($_POST, 'password', 6);
-
-        if ($validator->fails()) {
-            with_old($_POST);
-            flash('error', 'Donnees invalides. Minimum 6 caracteres pour le mot de passe.');
-            $this->redirect('/register');
-        }
-
-        $nom = trim((string) $_POST['nom']);
-        $username = trim((string) $_POST['username']);
-        $password = (string) $_POST['password'];
-        $confirmation = (string) $_POST['password_confirmation'];
-
-        if ($password !== $confirmation) {
-            with_old($_POST);
-            flash('error', 'La confirmation du mot de passe est incorrecte.');
-            $this->redirect('/register');
+        $username = trim((string) ($_POST['username'] ?? ''));
+        if ($username === '') {
+            flash('error', 'Indique ton nom utilisateur.');
+            $this->redirect('/forgot-password');
         }
 
         $userModel = new User();
-        if ($userModel->usernameExists($username)) {
-            with_old($_POST);
-            flash('error', 'Ce nom utilisateur existe deja.');
-            $this->redirect('/register');
+        $user = $userModel->findByUsername($username);
+
+        // Pour ne pas divulguer l'existence d'un compte, message identique.
+        $resetLink = null;
+        if ($user) {
+            $token = bin2hex(random_bytes(32));
+            $tokenHash = hash('sha256', $token);
+            $userModel->createPasswordReset((int) $user['id'], $tokenHash, 15);
+            $resetLink = url('/reset-password?token=' . $token);
+            audit_log('password_reset_request', 'users', (int) $user['id'], null, null);
         }
 
-        $roleId = $userModel->getRoleIdByName('serveuse');
-        if ($roleId === null) {
-            flash('error', 'Role par defaut introuvable. Contacte l administrateur.');
-            $this->redirect('/register');
+        $this->view('auth/forgot-password', [
+            'resetLink' => $resetLink,
+            'requested' => true,
+        ], 'auth');
+    }
+
+    public function showResetPassword(): void
+    {
+        $token = (string) ($_GET['token'] ?? '');
+        $valid = false;
+        if ($token !== '') {
+            $reset = (new User())->findValidPasswordReset(hash('sha256', $token));
+            $valid = $reset !== null;
         }
 
-        $userId = $userModel->create([
-            'role_id' => $roleId,
-            'nom' => $nom,
-            'username' => $username,
-            'password' => password_hash($password, PASSWORD_BCRYPT),
-            'email' => null,
-            'actif' => 1,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
-
-        flash('success', 'Compte cree avec succes. Tu peux te connecter.');
-        clear_old();
-        audit_log('register', 'users', $userId, null, ['username' => $username]);
-        $this->redirect('/login');
+        $this->view('auth/reset-password', [
+            'token' => $token,
+            'valid' => $valid,
+        ], 'auth');
     }
 
     public function resetPassword(): void
     {
         if (!verify_csrf()) {
             flash('error', 'Token CSRF invalide');
-            $this->redirect('/forgot-password');
+            $this->redirect('/login');
         }
+
+        $token = (string) ($_POST['token'] ?? '');
+        $password = (string) ($_POST['password'] ?? '');
+        $confirmation = (string) ($_POST['password_confirmation'] ?? '');
 
         $validator = (new Validator())
-            ->required($_POST, ['username', 'password', 'password_confirmation'])
+            ->required($_POST, ['token', 'password', 'password_confirmation'])
             ->min($_POST, 'password', 6);
 
-        if ($validator->fails()) {
-            with_old($_POST);
-            flash('error', 'Donnees invalides. Minimum 6 caracteres pour le mot de passe.');
-            $this->redirect('/forgot-password');
-        }
-
-        $username = trim((string) $_POST['username']);
-        $password = (string) $_POST['password'];
-        $confirmation = (string) $_POST['password_confirmation'];
-
-        if ($password !== $confirmation) {
-            with_old($_POST);
-            flash('error', 'La confirmation du mot de passe est incorrecte.');
-            $this->redirect('/forgot-password');
+        if ($validator->fails() || $password !== $confirmation) {
+            flash('error', 'Mot de passe invalide (min 6 caracteres et confirmation identique).');
+            $this->redirect('/reset-password?token=' . urlencode($token));
         }
 
         $userModel = new User();
-        if (!$userModel->usernameExists($username)) {
-            with_old($_POST);
-            flash('error', 'Compte introuvable.');
+        $reset = $userModel->findValidPasswordReset(hash('sha256', $token));
+        if (!$reset) {
+            flash('error', 'Lien de reinitialisation invalide ou expire.');
             $this->redirect('/forgot-password');
         }
 
-        $userModel->updatePasswordByUsername($username, password_hash($password, PASSWORD_BCRYPT));
-        clear_old();
+        $userModel->updatePasswordById((int) $reset['user_id'], password_hash($password, PASSWORD_BCRYPT));
+        $userModel->markPasswordResetUsed((int) $reset['id']);
+        audit_log('password_reset', 'users', (int) $reset['user_id'], null, null);
+
         flash('success', 'Mot de passe reinitialise. Connecte-toi maintenant.');
         $this->redirect('/login');
     }
@@ -172,7 +155,6 @@ class AuthController extends Controller
 
         audit_log('logout', 'users', (int) (Auth::user()['id'] ?? 0), null, null);
         Auth::logout();
-        setcookie('barflow_remember', '', time() - 3600, '/');
         $this->redirect('/login');
     }
 }

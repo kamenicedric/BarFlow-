@@ -6,16 +6,18 @@
 .env.*
 !.env.example
 
-# Logs, backups, exports, uploads
+# Logs, backups, exports, uploads, cache PDF
 /storage/logs/*
 /storage/backups/*
 /storage/exports/*
+/storage/tmp/*
 /public/assets/uploads/*
 
 # Garder les dossiers vides
 !/storage/logs/.gitkeep
 !/storage/backups/.gitkeep
 !/storage/exports/.gitkeep
+!/storage/tmp/.gitkeep
 !/public/assets/uploads/.gitkeep
 
 # Fichiers systeme / editeur

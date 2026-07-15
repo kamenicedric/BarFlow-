@@ -34,12 +34,14 @@ class ProduitsController extends Controller
 
         $payload = [
             'nom' => trim((string) $_POST['nom']),
-            'categorie_id' => $_POST['categorie_id'] ?: null,
+            'categorie_id' => !empty($_POST['categorie_id']) ? (int) $_POST['categorie_id'] : null,
             'prix_achat' => (float) $_POST['prix_achat'],
             'prix_vente' => (float) $_POST['prix_vente'],
             'stock' => (float) $_POST['stock'],
             'stock_critique' => (float) $_POST['stock_critique'],
             'unite' => trim((string) $_POST['unite']),
+            'unite_achat' => trim((string) ($_POST['unite_achat'] ?? '')) ?: null,
+            'facteur_conversion' => max(1, (float) ($_POST['facteur_conversion'] ?? 1)),
             'code_barre' => trim((string) ($_POST['code_barre'] ?? '')),
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
@@ -76,6 +78,8 @@ class ProduitsController extends Controller
             'stock' => (float) $_POST['stock'],
             'stock_critique' => (float) $_POST['stock_critique'],
             'unite' => trim((string) $_POST['unite']),
+            'unite_achat' => trim((string) ($_POST['unite_achat'] ?? '')) ?: null,
+            'facteur_conversion' => max(1, (float) ($_POST['facteur_conversion'] ?? 1)),
             'updated_at' => date('Y-m-d H:i:s'),
         ];
 

@@ -39,7 +39,7 @@ class DepensesController extends Controller
             'categorie' => trim((string) $_POST['categorie']),
             'donneur_ordre' => trim((string) ($_POST['donneur_ordre'] ?? '')),
             'executant' => trim((string) ($_POST['executant'] ?? '')),
-            'preuve_path' => null,
+            'preuve_path' => handle_upload('preuve'),
             'date_depense' => date('Y-m-d H:i:s'),
             'utilisateur_id' => (int) Auth::user()['id'],
             'created_at' => date('Y-m-d H:i:s'),

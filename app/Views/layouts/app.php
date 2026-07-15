@@ -17,8 +17,14 @@ $pageTitles = [
     '/depenses' => 'Gestion des depenses',
     '/approvisionnements' => 'Approvisionnements',
     '/rapports' => 'Rapports financiers',
+    '/users' => 'Gestion des utilisateurs',
+    '/settings' => 'Parametres',
+    '/audit' => 'Journal d\'audit',
 ];
 $pageTitle = $pageTitles[$requestPath] ?? 'BarFlow';
+$barName = setting('nom_bar', 'BarFlow');
+$isAdmin = can(['administrateur']);
+$isManager = can(['administrateur', 'gerant']);
 ?>
 <!doctype html>
 <html lang="fr">
@@ -26,7 +32,8 @@ $pageTitle = $pageTitles[$requestPath] ?? 'BarFlow';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="barflow-base" content="<?= e(app_base_path()) ?>">
-    <title>BarFlow</title>
+    <meta name="barflow-devise" content="<?= e((string) setting('devise', 'FCFA')) ?>">
+    <title><?= e($barName) ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="<?= url('/assets/css/app.css') ?>" rel="stylesheet">
@@ -37,7 +44,7 @@ $pageTitle = $pageTitles[$requestPath] ?? 'BarFlow';
         <div class="brand-block">
             <div class="brand-logo"><i class="bi bi-cup-hot-fill"></i></div>
             <div>
-                <h1 class="brand-title">BarFlow</h1>
+                <h1 class="brand-title"><?= e($barName) ?></h1>
                 <p class="brand-subtitle">Gestion intelligente du bar</p>
             </div>
         </div>
@@ -52,6 +59,14 @@ $pageTitle = $pageTitles[$requestPath] ?? 'BarFlow';
             <a class="nav-link" href="<?= url('/depenses') ?>"><i class="bi bi-receipt"></i> Depenses</a>
             <a class="nav-link" href="<?= url('/approvisionnements') ?>"><i class="bi bi-truck"></i> Approvisionnements</a>
             <a class="nav-link" href="<?= url('/rapports') ?>"><i class="bi bi-bar-chart-line"></i> Rapports</a>
+            <?php if ($isManager): ?>
+                <hr class="my-2 opacity-25">
+                <?php if ($isAdmin): ?>
+                    <a class="nav-link" href="<?= url('/users') ?>"><i class="bi bi-people"></i> Utilisateurs</a>
+                <?php endif; ?>
+                <a class="nav-link" href="<?= url('/audit') ?>"><i class="bi bi-clipboard-data"></i> Audit</a>
+                <a class="nav-link" href="<?= url('/settings') ?>"><i class="bi bi-gear"></i> Parametres</a>
+            <?php endif; ?>
         </nav>
     </aside>
     <main class="app-main">
@@ -64,6 +79,15 @@ $pageTitle = $pageTitles[$requestPath] ?? 'BarFlow';
                 <p class="page-subtitle mb-0">Bonjour <?= e($_SESSION['user']['nom'] ?? '') ?> - Role: <?= e($_SESSION['user']['role'] ?? '') ?></p>
             </div>
             <div class="d-flex align-items-center gap-2">
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary btn-sm px-3 position-relative" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bell"></i>
+                        <span id="stockAlertBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none">0</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow" id="stockAlertMenu" style="min-width: 280px;">
+                        <li><span class="dropdown-item-text text-muted">Chargement...</span></li>
+                    </ul>
+                </div>
                 <button class="btn btn-outline-secondary btn-sm px-3" id="themeToggle" type="button">
                     <i class="bi bi-moon-stars"></i> Theme
                 </button>

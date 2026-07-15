@@ -8,9 +8,15 @@
         <div class="col-md-2"><input class="form-control" name="prix_vente" type="number" step="0.01" placeholder="Prix vente" required></div>
         <div class="col-md-1"><input class="form-control" name="stock" type="number" step="0.01" placeholder="Stock" required></div>
         <div class="col-md-1"><input class="form-control" name="stock_critique" type="number" step="0.01" placeholder="Seuil" required></div>
-        <div class="col-md-2"><input class="form-control" name="unite" placeholder="Unite" required></div>
-        <div class="col-md-1"><button class="btn btn-primary w-100">+</button></div>
+        <div class="col-md-3"><input class="form-control" name="unite" placeholder="Unite de vente (ex: bouteille)" required></div>
     </div>
+    <div class="row g-2 mt-1">
+        <div class="col-md-3"><input class="form-control" name="unite_achat" placeholder="Unite d'achat (ex: casier)"></div>
+        <div class="col-md-3"><input class="form-control" name="facteur_conversion" type="number" step="0.001" min="1" value="1" placeholder="Facteur (ex: 12)"></div>
+        <div class="col-md-4"><input class="form-control" name="code_barre" placeholder="Code barre (optionnel)"></div>
+        <div class="col-md-2"><button class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i> Ajouter</button></div>
+    </div>
+    <small class="text-muted d-block mt-2">Conversion : 1 unite d'achat = facteur x unite de vente (ex: 1 casier = 12 bouteilles). Utilise a l'approvisionnement.</small>
 </form>
 
 <div class="card">

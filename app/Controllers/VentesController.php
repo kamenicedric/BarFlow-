@@ -9,6 +9,7 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Models\Caisse;
 use App\Models\Produit;
+use App\Services\VenteService;
 
 class VentesController extends Controller
 {
@@ -31,83 +32,26 @@ class VentesController extends Controller
             $this->json(['message' => 'Panier vide'], 422);
         }
 
-        $db = Database::connection();
-        $produitModel = new Produit();
-        $caisseModel = new Caisse();
-
-        $caisse = $caisseModel->openCaisseForUser((int) Auth::user()['id']);
+        $caisse = (new Caisse())->openCaisseForUser((int) Auth::user()['id']);
         if (!$caisse) {
             $this->json(['message' => 'Aucune caisse ouverte'], 422);
         }
 
         try {
-            $db->beginTransaction();
+            $service = new VenteService(Database::connection());
+            $result = $service->create($items, $modePaiement, (int) Auth::user()['id'], (int) $caisse['id']);
 
-            $total = 0.0;
-            foreach ($items as $item) {
-                $product = $produitModel->find((int) $item['produit_id']);
-                $quantity = (float) $item['quantite'];
-
-                if (!$product || $quantity <= 0 || (float) $product['stock'] < $quantity) {
-                    throw new \RuntimeException('Stock insuffisant sur un produit');
-                }
-
-                $total += $quantity * (float) $product['prix_vente'];
-            }
-
-            $saleSql = 'INSERT INTO ventes (caisse_id, utilisateur_id, mode_paiement, total, created_at, updated_at)
-                        VALUES (:caisse_id, :utilisateur_id, :mode_paiement, :total, NOW(), NOW())';
-            $db->prepare($saleSql)->execute([
-                'caisse_id' => $caisse['id'],
-                'utilisateur_id' => Auth::user()['id'],
+            audit_log('create', 'ventes', $result['vente_id'], null, [
+                'total' => $result['total'],
                 'mode_paiement' => $modePaiement,
-                'total' => $total,
             ]);
 
-            $venteId = (int) $db->lastInsertId();
-
-            $detailSql = 'INSERT INTO ventes_details (vente_id, produit_id, quantite, prix_unitaire, sous_total, created_at, updated_at)
-                          VALUES (:vente_id, :produit_id, :quantite, :prix_unitaire, :sous_total, NOW(), NOW())';
-            $mvtSql = 'INSERT INTO mouvements_stock (produit_id, type_mouvement, quantite, ancien_stock, nouveau_stock, utilisateur_id, justification, date_mouvement, created_at, updated_at)
-                       VALUES (:produit_id, :type_mouvement, :quantite, :ancien_stock, :nouveau_stock, :utilisateur_id, :justification, NOW(), NOW(), NOW())';
-
-            foreach ($items as $item) {
-                $product = $produitModel->find((int) $item['produit_id']);
-                $quantity = (float) $item['quantite'];
-                $oldStock = (float) $product['stock'];
-                $newStock = $oldStock - $quantity;
-
-                $db->prepare($detailSql)->execute([
-                    'vente_id' => $venteId,
-                    'produit_id' => $product['id'],
-                    'quantite' => $quantity,
-                    'prix_unitaire' => $product['prix_vente'],
-                    'sous_total' => $quantity * (float) $product['prix_vente'],
-                ]);
-
-                $db->prepare('UPDATE produits SET stock = :stock, updated_at = NOW() WHERE id = :id')
-                    ->execute(['stock' => $newStock, 'id' => $product['id']]);
-
-                $db->prepare($mvtSql)->execute([
-                    'produit_id' => $product['id'],
-                    'type_mouvement' => 'vente',
-                    'quantite' => $quantity,
-                    'ancien_stock' => $oldStock,
-                    'nouveau_stock' => $newStock,
-                    'utilisateur_id' => Auth::user()['id'],
-                    'justification' => 'Vente #' . $venteId,
-                ]);
-            }
-
-            $db->commit();
-
-            audit_log('create', 'ventes', $venteId, null, ['total' => $total, 'mode_paiement' => $modePaiement]);
-
-            $this->json(['message' => 'Vente enregistree', 'vente_id' => $venteId, 'total' => $total]);
+            $this->json([
+                'message' => 'Vente enregistree',
+                'vente_id' => $result['vente_id'],
+                'total' => $result['total'],
+            ]);
         } catch (\Throwable $exception) {
-            if ($db->inTransaction()) {
-                $db->rollBack();
-            }
             $this->json(['message' => $exception->getMessage()], 422);
         }
     }

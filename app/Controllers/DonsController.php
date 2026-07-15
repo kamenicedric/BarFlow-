@@ -10,6 +10,7 @@ use App\Core\Database;
 use App\Core\Validator;
 use App\Models\Don;
 use App\Models\Produit;
+use App\Services\StockService;
 
 class DonsController extends Controller
 {
@@ -48,8 +49,6 @@ class DonsController extends Controller
             $this->redirect('/dons');
         }
 
-        $ancienStock = (float) $produit['stock'];
-        $nouveauStock = $ancienStock - $quantite;
         $valeur = $quantite * (float) $produit['prix_achat'];
 
         try {
@@ -66,22 +65,7 @@ class DonsController extends Controller
                 'updated_at' => date('Y-m-d H:i:s'),
             ]);
 
-            $produitModel->updateById((int) $produit['id'], [
-                'stock' => $nouveauStock,
-                'updated_at' => date('Y-m-d H:i:s'),
-            ]);
-
-            $db->prepare('INSERT INTO mouvements_stock (produit_id, type_mouvement, quantite, ancien_stock, nouveau_stock, utilisateur_id, justification, date_mouvement, created_at, updated_at)
-                          VALUES (:produit_id, :type_mouvement, :quantite, :ancien_stock, :nouveau_stock, :utilisateur_id, :justification, NOW(), NOW(), NOW())')
-                ->execute([
-                    'produit_id' => $produit['id'],
-                    'type_mouvement' => 'don',
-                    'quantite' => $quantite,
-                    'ancien_stock' => $ancienStock,
-                    'nouveau_stock' => $nouveauStock,
-                    'utilisateur_id' => Auth::user()['id'],
-                    'justification' => 'Don #' . $id,
-                ]);
+            (new StockService($db))->applyMovement($produit, 'don', -$quantite, (int) Auth::user()['id'], 'Don #' . $id);
 
             $db->commit();
             audit_log('create', 'dons', $id, null, ['quantite' => $quantite, 'valeur' => $valeur]);

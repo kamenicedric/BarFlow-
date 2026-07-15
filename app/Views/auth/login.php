@@ -21,7 +21,7 @@
                 <label class="form-label fw-semibold">Mot de passe</label>
                 <div class="input-group input-group-lg">
                     <input type="password" name="password" id="loginPassword" class="form-control" required>
-                    <button class="btn btn-outline-secondary" type="button" id="toggleLoginPassword">
+                    <button class="btn btn-outline-secondary js-toggle-password" type="button" data-target="loginPassword">
                         <i class="bi bi-eye"></i>
                     </button>
                 </div>
@@ -36,19 +36,7 @@
             <button type="submit" class="btn btn-primary btn-lg w-100">Se connecter</button>
         </form>
         <div class="text-center mt-3">
-            <span class="text-muted small">Pas encore de compte ?</span>
-            <a class="small text-decoration-none fw-semibold" href="<?= url('/register') ?>">Creer un compte</a>
+            <span class="text-muted small"><i class="bi bi-info-circle"></i> La creation de comptes est reservee a l'administrateur.</span>
         </div>
     </div>
 </div>
-
-<script>
-document.getElementById('toggleLoginPassword')?.addEventListener('click', function () {
-    const input = document.getElementById('loginPassword');
-    if (!input) return;
-    input.type = input.type === 'password' ? 'text' : 'password';
-    this.innerHTML = input.type === 'password'
-        ? '<i class="bi bi-eye"></i>'
-        : '<i class="bi bi-eye-slash"></i>';
-});
-</script>

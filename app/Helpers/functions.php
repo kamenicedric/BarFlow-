@@ -93,6 +93,81 @@ function clear_old(): void
     unset($_SESSION['_old']);
 }
 
+function current_role(): ?string
+{
+    return Auth::user()['role'] ?? null;
+}
+
+function can(array $roles): bool
+{
+    return Auth::hasRole($roles);
+}
+
+/**
+ * Retourne un parametre applicatif (table settings), avec cache statique.
+ */
+function setting(string $key, ?string $default = null): ?string
+{
+    static $cache = null;
+
+    if ($cache === null) {
+        $cache = [];
+        try {
+            $row = Database::connection()
+                ->query('SELECT * FROM settings WHERE deleted_at IS NULL ORDER BY id ASC LIMIT 1')
+                ->fetch();
+            if (is_array($row)) {
+                $cache = $row;
+            }
+        } catch (\Throwable $exception) {
+            $cache = [];
+        }
+    }
+
+    $value = $cache[$key] ?? null;
+    return ($value === null || $value === '') ? $default : (string) $value;
+}
+
+/**
+ * Gere un upload de fichier de facon securisee.
+ * Retourne le chemin web relatif (pour stockage en base) ou null.
+ */
+function handle_upload(string $field, array $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp'], int $maxBytes = 5242880): ?string
+{
+    if (empty($_FILES[$field]) || ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    $file = $_FILES[$field];
+
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        return null;
+    }
+
+    if ($file['size'] > $maxBytes) {
+        return null;
+    }
+
+    $extension = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION));
+    if (!in_array($extension, $allowedExtensions, true)) {
+        return null;
+    }
+
+    $uploadDir = dirname(__DIR__, 2) . '/public/assets/uploads';
+    if (!is_dir($uploadDir)) {
+        @mkdir($uploadDir, 0775, true);
+    }
+
+    $safeName = bin2hex(random_bytes(16)) . '.' . $extension;
+    $destination = $uploadDir . '/' . $safeName;
+
+    if (!move_uploaded_file($file['tmp_name'], $destination)) {
+        return null;
+    }
+
+    return '/assets/uploads/' . $safeName;
+}
+
 function audit_log(string $action, string $table, ?int $recordId, ?array $oldValue, ?array $newValue): void
 {
     if (!Auth::check()) {
