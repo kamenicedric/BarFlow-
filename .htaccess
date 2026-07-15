@@ -1,0 +1,10 @@
+RewriteEngine On
+
+# Permet d'acceder a l'application depuis /barflow
+RewriteRule ^$ public/ [L]
+
+# Redirige toute requete vers /public sauf fichiers/dossiers existants
+RewriteCond %{REQUEST_URI} !^/barflow/public/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ public/$1 [L]

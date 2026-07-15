@@ -1,0 +1,23 @@
+
+
+{
+    "name": "cedric/barflow",
+    "description": "Application de gestion de bar BarFlow",
+
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+
+    "authors": [
+        {
+            "name": "kameni cedric",
+            "email": "kamenicedric2001@gmail.com"
+        }
+    ],
+
+    "require": {
+        "vlucas/phpdotenv": "^5.6"
+    }
+}
