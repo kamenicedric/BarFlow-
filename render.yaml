@@ -32,6 +32,8 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
+      - key: DB_SSL
+        value: "true"
       # Optionnel : si vide, l'entrypoint utilise RENDER_EXTERNAL_URL automatiquement
       - key: APP_URL
         sync: false

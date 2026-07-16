@@ -3,7 +3,7 @@ FROM php:8.2-apache
 
 # Extensions PHP requises (MySQL, GD pour images/logo, zip pour composer)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libpng-dev libjpeg-dev libfreetype6-dev libzip-dev unzip \
+        libpng-dev libjpeg-dev libfreetype6-dev libzip-dev unzip ca-certificates \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" pdo_mysql gd zip \
     && a2enmod rewrite \

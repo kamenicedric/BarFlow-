@@ -3,27 +3,39 @@
 declare(strict_types=1);
 
 /**
- * Migration idempotente pour le deploiement (Railway, Docker, VPS...).
- * Lit les variables d'environnement DB_* et applique les fichiers SQL.
- * Peut etre executee a chaque demarrage sans risque (CREATE IF NOT EXISTS,
- * INSERT ... WHERE NOT EXISTS, ALTER protege).
+ * Migration idempotente pour le deploiement (Render, Docker, VPS...).
  */
 
-$host = getenv('DB_HOST') ?: '127.0.0.1';
-$port = getenv('DB_PORT') ?: '3306';
-$db   = getenv('DB_DATABASE') ?: 'barflow';
-$user = getenv('DB_USERNAME') ?: 'root';
-$pass = getenv('DB_PASSWORD') ?: '';
+require_once dirname(__DIR__) . '/vendor/autoload.php';
 
-echo "[migrate] Connexion a {$host}:{$port}/{$db}...\n";
+if (file_exists(dirname(__DIR__) . '/.env')) {
+    $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__));
+    $dotenv->safeLoad();
+}
+
+if (!function_exists('env')) {
+    function env(string $key, ?string $default = null): ?string
+    {
+        $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+        return ($value === false || $value === null || $value === '') ? $default : (string) $value;
+    }
+}
+
+$config = require dirname(__DIR__) . '/config/database.php';
+
+echo "[migrate] Connexion a {$config['host']}:{$config['port']}/{$config['database']}...\n";
+
+$dsn = sprintf(
+    '%s:host=%s;port=%d;dbname=%s;charset=%s',
+    $config['driver'],
+    $config['host'],
+    $config['port'],
+    $config['database'],
+    $config['charset']
+);
 
 try {
-    $pdo = new PDO(
-        "mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4",
-        $user,
-        $pass,
-        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-    );
+    $pdo = new PDO($dsn, $config['username'], $config['password'], $config['options']);
 } catch (Throwable $e) {
     fwrite(STDERR, "[migrate] Connexion impossible: " . $e->getMessage() . "\n");
     exit(1);
@@ -36,7 +48,6 @@ $runFile = static function (PDO $pdo, string $file): void {
     }
 
     $sql = (string) file_get_contents($file);
-    // Retirer les lignes de commentaires -- ...
     $sql = preg_replace('/^\s*--.*$/m', '', $sql) ?? $sql;
 
     $statements = array_filter(array_map('trim', explode(';', $sql)));
@@ -50,7 +61,6 @@ $runFile = static function (PDO $pdo, string $file): void {
             $pdo->exec($statement);
             $ok++;
         } catch (Throwable $e) {
-            // Colonne/table deja existante -> normal en re-execution
             $skip++;
         }
     }
