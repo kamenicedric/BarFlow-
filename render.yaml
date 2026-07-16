@@ -1,0 +1,37 @@
+# Blueprint Render (plan gratuit) - https://render.com/docs/blueprint-spec
+# MySQL : Render ne propose pas de MySQL gratuit -> utiliser une base externe
+# (voir DEPLOY_RENDER.md : TiDB Cloud ou db4free.net)
+
+services:
+  - type: web
+    name: barflow
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_TIMEZONE
+        value: Africa/Douala
+      - key: SESSION_TIMEOUT_MINUTES
+        value: 120
+      - key: REMEMBER_ME_DAYS
+        value: 15
+      # Renseigner dans le dashboard Render apres creation de la base MySQL gratuite :
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      # Optionnel : si vide, l'entrypoint utilise RENDER_EXTERNAL_URL automatiquement
+      - key: APP_URL
+        sync: false

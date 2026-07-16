@@ -9,6 +9,7 @@ use App\Controllers\CaisseController;
 use App\Controllers\DashboardController;
 use App\Controllers\DepensesController;
 use App\Controllers\DonsController;
+use App\Controllers\HealthController;
 use App\Controllers\PertesController;
 use App\Controllers\ProduitsController;
 use App\Controllers\RapportsController;
@@ -19,6 +20,7 @@ use App\Controllers\VentesController;
 
 /** @var App\Core\App $app */
 
+$app->router->get('/health', [HealthController::class, 'index']);
 $app->router->get('/login', [AuthController::class, 'showLogin'], ['guest']);
 $app->router->post('/login', [AuthController::class, 'login'], ['guest']);
 $app->router->get('/forgot-password', [AuthController::class, 'showForgotPassword'], ['guest']);
