@@ -27,9 +27,12 @@ RUN composer dump-autoload --optimize --no-dev
 # Docroot Apache -> /public + vhost avec AllowOverride All
 COPY docker/000-default.conf /etc/apache2/sites-available/000-default.conf
 
-# Permissions ecriture (logs, cache PDF, uploads)
+# Permissions ecriture (logs, cache PDF, uploads, sessions)
 RUN chown -R www-data:www-data storage public/assets/uploads \
-    && chmod -R 775 storage public/assets/uploads
+    && chmod -R 775 storage public/assets/uploads \
+    && mkdir -p storage/sessions \
+    && chown -R www-data:www-data storage/sessions \
+    && chmod -R 775 storage/sessions
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

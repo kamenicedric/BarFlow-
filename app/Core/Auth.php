@@ -77,7 +77,7 @@ class Auth
             [
                 'expires' => time() + (86400 * self::REMEMBER_DAYS),
                 'path' => '/',
-                'secure' => (($_SERVER['HTTPS'] ?? '') === 'on'),
+                'secure' => Session::isHttps(),
                 'httponly' => true,
                 'samesite' => 'Lax',
             ]

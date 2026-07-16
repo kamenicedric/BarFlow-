@@ -22,6 +22,12 @@ if (!function_exists('env')) {
 $appConfig = require dirname(__DIR__) . '/config/app.php';
 date_default_timezone_set($appConfig['timezone']);
 
+// Railway / Render : le HTTPS s'arrete au proxy. On aligne PHP pour les cookies Secure.
+$forwardedProto = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+if (str_contains($forwardedProto, 'https') || (($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '') === 'on')) {
+    $_SERVER['HTTPS'] = 'on';
+}
+
 $debug = (bool) ($appConfig['debug'] ?? false);
 $logDir = dirname(__DIR__) . '/storage/logs';
 $logFile = $logDir . '/app.log';
