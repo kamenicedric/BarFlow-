@@ -31,8 +31,7 @@ class Database
             self::$pdo = new PDO($dsn, $config['username'], $config['password'], $config['options']);
         } catch (PDOException $exception) {
             error_log($exception->getMessage());
-            http_response_code(500);
-            exit('Erreur de connexion base de donnees.');
+            throw $exception;
         }
 
         return self::$pdo;
