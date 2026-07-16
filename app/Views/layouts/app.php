@@ -34,6 +34,9 @@ $isManager = can(['administrateur', 'gerant']);
     <meta name="barflow-base" content="<?= e(app_base_path()) ?>">
     <meta name="barflow-devise" content="<?= e((string) setting('devise', 'FCFA')) ?>">
     <title><?= e($barName) ?></title>
+    <link rel="icon" href="<?= url('/favicon.svg') ?>" type="image/svg+xml">
+    <link rel="icon" href="<?= url('/favicon.png') ?>" type="image/png" sizes="32x32">
+    <link rel="apple-touch-icon" href="<?= url('/apple-touch-icon.png') ?>">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="<?= url('/assets/css/app.css') ?>" rel="stylesheet">
