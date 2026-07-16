@@ -1,0 +1,11 @@
+.git
+.gitignore
+vendor
+node_modules
+storage/logs/*
+storage/tmp/*
+storage/backups/*
+storage/exports/*
+public/assets/uploads/*
+.env
+*.md
