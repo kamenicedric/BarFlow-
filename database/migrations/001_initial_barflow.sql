@@ -268,7 +268,7 @@ INSERT INTO roles (nom, created_at, updated_at)
 SELECT 'serveuse', NOW(), NOW() WHERE NOT EXISTS (SELECT 1 FROM roles WHERE nom = 'serveuse');
 
 INSERT INTO users (role_id, nom, username, password, email, actif, created_at, updated_at)
-SELECT r.id, 'Admin BarFlow', 'admin', '$2y$10$aFqHfoRP458r42CGdsdCg.djpOhhKldtRz7eXiiuCIGxyiIaRMSfS', 'admin@barflow.local', 1, NOW(), NOW()
+SELECT r.id, 'Admin BarFlow', 'admin', '$2y$10$ebtnFQiFuO707ljm853gLOjYIYkYMCV2P6FMInzT5t3mYbC9i0c5.', 'admin@barflow.local', 1, NOW(), NOW()
 FROM roles r
 WHERE r.nom = 'administrateur'
 AND NOT EXISTS (SELECT 1 FROM users WHERE username = 'admin');
